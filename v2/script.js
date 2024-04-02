@@ -36,9 +36,23 @@ Chat = {
     loadEmotes: function (channelID) {
         Chat.info.emotes = {};
 
+        fetch('https://api.frankerfacez.com/v1/set/global/ids')
+            .then(res => res.json())
+            .then(res => {
+                Object.entries(res.sets).forEach(set => {
+                    set.at(1).emoticons.forEach(emote => {
+
+                        Chat.info.emotes[emote.name] = {
+                            id: emote.id,
+                            image: emote.urls['4'],
+                        };
+                    });
+                });
+            });
+
         fetch('https://api.betterttv.net/3/cached/emotes/global')
             .then(res => res.json())
-            .then(function (res) {
+            .then(res => {
                 res.forEach(emote => {
                     Chat.info.emotes[emote.code] = {
                         id: emote.id,
@@ -50,7 +64,7 @@ Chat = {
 
         fetch('https://7tv.io/v3/emote-sets/global')
             .then(res => res.json())
-            .then(function (res) {
+            .then(res => {
                 res.emotes.forEach(emote => {
                     Chat.info.emotes[emote.name] = {
                         id: emote.id,
@@ -207,6 +221,14 @@ Chat = {
                     replacements[emoteData.code] = `<img class="emote" src="https://files.kick.com/emotes/${emoteData.id}/fullsize" />`;
                 });
             }
+
+            Object.entries(Chat.info.emotes).forEach(emote => {
+                if (message.includes(emote[0])) {
+                    if (emote[1].upscale) replacements[emote[0]] = `<img class="emote upscale" src="${emote[1].image}" alt="${emote[0]}" />`;
+                    else if (emote[1].zeroWidth) replacements[emote[0]] = `<img class="emote" data-zw="true" src="${emote[1].image}" alt="${emote[0]}"/>`;
+                    else replacements[emote[0]] = `<img class="emote" src="${emote[1].image}" alt="${emote[0]}"/>`;
+                }
+            });
 
             message = escapeHtml(message);
 
