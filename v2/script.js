@@ -152,6 +152,7 @@ Chat = {
             $chatLine.attr('data-nick', nick);
             $chatLine.attr('data-time', Date.now());
             $chatLine.attr('data-id', info.id);
+            $chatLine.attr('data-user-id', info.userId);
             const $userInfo = $('<span></span>');
             $userInfo.addClass('user_info');
 
@@ -199,7 +200,7 @@ Chat = {
                 color = twitchColors[nick.charCodeAt(0) % 15];
             }
             $username.css('color', color);
-            $username.html(info['display-name'] ? info['display-name'] : nick);
+            $username.html(info.displayName ?? nick);
             $userInfo.append($username);
 
             // Writing message
@@ -260,51 +261,61 @@ Chat = {
         }
     },
 
+    removeChatLineById: function (id) {
+        $(`div[data-id=${id}]`).remove();
+    },
+
+    removeUserChatLines: function (id) {
+        $(`div[data-user-id=${id}]`).remove();
+    },
+
     connect: function (channel) {
         Chat.info.channel = channel;
         const title = $(document).prop('title');
         $(document).prop('title', title + Chat.info.channel);
 
         Chat.load(function () {
-                console.log('jChat: Connecting to IRC server...');
-                const baseUrl = "wss://ws-us2.pusher.com/app/eb1d5f283081a78b932c";
-                const urlParams = new URLSearchParams({
-                    protocol: "7",
-                    client: "js",
-                    version: "7.4.0",
-                    flash: false,
-                });
-                const url = `${baseUrl}?${urlParams.toString()}`;
-                const socket = new WebSocket(url);
+            console.log('jChat: Connecting to IRC server...');
+            const baseUrl = "wss://ws-us2.pusher.com/app/eb1d5f283081a78b932c";
+            const urlParams = new URLSearchParams({
+                protocol: "7",
+                client: "js",
+                version: "7.4.0",
+                flash: false,
+            });
+            const url = `${baseUrl}?${urlParams.toString()}`;
+            const socket = new WebSocket(url);
 
-                socket.onopen = function () {
-                    socket.send(JSON.stringify({
-                        event: "pusher:subscribe",
-                        data: {auth: "", channel: `chatrooms.${Chat.info.channelID}.v2`},
-                    }));
+            socket.onopen = function () {
+                socket.send(JSON.stringify({
+                    event: "pusher:subscribe",
+                    data: {auth: "", channel: `chatrooms.${Chat.info.channelID}.v2`},
+                }));
 
-                    console.log('connected');
-                };
+                console.log('connected');
+            };
 
-                socket.onclose = function () {
-                    console.log('jChat: Disconnected');
-                };
+            socket.onclose = function () {
+                console.log('jChat: Disconnected');
+            };
 
 
-                socket.onmessage = function (data) {
-                    const messageEventJSON = JSON.parse(data.data.toString());
-                    if (messageEventJSON.event === "App\\Events\\ChatMessageEvent") {
-                        const data = JSON.parse(messageEventJSON.data);
+            socket.onmessage = function (messageEvent) {
+                const messageEventJSON = JSON.parse(messageEvent.data.toString());
+                const data = JSON.parse(messageEventJSON.data);
+                console.log(data, messageEventJSON.event);
+                switch (messageEventJSON.event) {
+                    case "App\\Events\\ChatMessageEvent":
                         const message = data.content;
                         const username = data.sender.username;
                         const info = {
-                            id: data.sender.id,
+                            id: data.id,
+                            userId: data.sender.id,
                             badges: data.sender.identity.badges,
                             color: data.sender.identity.color,
-                            'display-name': data.sender.username,
+                            displayName: data.sender.username,
                             emotes: []
                         };
-                        if (data.sender.identity.badges.length) console.log(data.sender.identity.badges);
 
                         try {
                             const emoteRegex = /\[emote:\d+:[^\]]+\]/g;
@@ -323,16 +334,25 @@ Chat = {
                         } catch (error) {
                             console.log("Message filter error:", error);
                         }
+
                         Chat.write(username, info, message);
-                    }
+
+                        break;
+                    case "App\\Events\\MessageDeletedEvent":
+                        Chat.removeChatLineById(data.message.id);
+
+                        break;
+                    case "App\\Events\\UserBannedEvent":
+                        Chat.removeUserChatLines(data.user.id);
+
+                        break;
+
                 }
             }
-        )
-        ;
+        });
     }
-}
-;
+};
 
 $(document).ready(function () {
-    Chat.connect($.QueryString.channel ? $.QueryString.channel.toLowerCase() : 'giambaj');
+    Chat.connect($.QueryString.channel ? $.QueryString.channel.toLowerCase() : 'pixelprodig');
 });

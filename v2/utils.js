@@ -7,17 +7,9 @@ function appendCSS(type, name) {
     }).appendTo("head");
 }
 
-function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function escapeHtml(message) {
     return message
         .replace(/&/g, "&amp;")
         .replace(/(<)(?!3)/g, "&lt;")
         .replace(/(>)(?!\()/g, "&gt;");
-}
-
-function TwitchAPI(url) {
-    return $.getJSON(url + (url.search(/\?/) > -1 ? '&' : '?'));
 }
