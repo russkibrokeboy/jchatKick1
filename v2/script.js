@@ -148,7 +148,7 @@ Chat = {
 
 
             const badges = [];
-            const priorityBadges = ['broadcaster', 'moderator', 'sub_gifter', 'vip', 'og', 'verified'];
+            const priorityBadges = ['broadcaster', 'moderator', 'sub_gifter', 'vip', 'og', 'verified', 'founder'];
             if (info.badges.length) {
                 info.badges.forEach(badge => {
                     const priority = priorityBadges.includes(badge.type);
@@ -233,8 +233,11 @@ Chat = {
                     message = replacements[replacementKey];
                     return;
                 }
-                const regex = new RegExp("(?<!\\S)(" + escapeRegExp(replacementKey) + ")(?!\\S)", 'g');
-                message = message.replace(regex, replacements[replacementKey]);
+
+                const regex = new RegExp(`(?<!\\S)(${escapeRegExp(replacementKey)})(?!\\S)`, 'g');
+                message = message
+                    .replace(new RegExp("(?<!\\s)(\\[emote:)(?!\\s)", 'g'), " $&")
+                    .replace(regex, replacements[replacementKey]);
             });
 
             $message.html(message);
@@ -298,13 +301,17 @@ Chat = {
 
         socket.onclose = function () {
             console.log('Disconnected');
-            setTimeout(Chat.connect, 10000, Chat.info.channel);
+            setTimeout(Chat.connect, 1e3 * 5, Chat.info.channel);
         };
-
 
         socket.onmessage = function (messageEvent) {
             const messageEventJSON = JSON.parse(messageEvent.data.toString());
-            const data = JSON.parse(messageEventJSON.data);
+            let data = {};
+
+            if (typeof messageEventJSON.data === 'string') {
+                data = JSON.parse(messageEventJSON.data);
+            }
+
             switch (messageEventJSON.event) {
                 case "App\\Events\\ChatMessageEvent":
                     Chat.writeLine(data);
