@@ -345,7 +345,7 @@ Chat = {
         try {
             const emoteRegex = /\[emote:\d+:[^\]]+\]/g;
             const matches = message.match(emoteRegex);
-            if (matches.length) {
+            if (matches && matches.length) {
                 matches.forEach(match => {
                     const parts = match.substring(7, match.length - 1).split(":");
                     info.emotes.push({
