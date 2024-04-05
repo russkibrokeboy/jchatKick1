@@ -11,9 +11,6 @@ Chat = {
     info: {
         channel: null,
         animate: ('animate' in $.QueryString ? ($.QueryString.animate.toLowerCase() === 'true') : false),
-        showBots: ('bots' in $.QueryString ? ($.QueryString.bots.toLowerCase() === 'true') : false),
-        hideCommands: ('hide_commands' in $.QueryString ? ($.QueryString.hide_commands.toLowerCase() === 'true') : false),
-        hideBadges: ('hide_badges' in $.QueryString ? ($.QueryString.hide_badges.toLowerCase() === 'true') : false),
         fade: ('fade' in $.QueryString ? parseInt($.QueryString.fade) : false),
         size: ('size' in $.QueryString ? parseInt($.QueryString.size) : 3),
         font: ('font' in $.QueryString ? parseInt($.QueryString.font) : 0),
@@ -22,17 +19,10 @@ Chat = {
         smallCaps: ('small_caps' in $.QueryString ? ($.QueryString.small_caps.toLowerCase() === 'true') : false),
         emotes: {},
         badges: {},
-        userBadges: {},
-        ffzapBadges: null,
-        bttvBadges: null,
-        seventvBadges: null,
-        chatterinoBadges: null,
-        cheers: {},
         lines: [],
-        blockedUsers: ('block' in $.QueryString ? $.QueryString.block.toLowerCase().split(',') : false),
-        bots: ['streamelements', 'streamlabs', 'nightbot', 'moobot', 'fossabot'],
         channelID: null,
         chatRoomId: null,
+        contentLoaded: false,
     },
 
     loadEmotes: function (channelID) {
@@ -78,37 +68,34 @@ Chat = {
 
     },
 
-    load: function (callback) {
-        fetch('https://kick.com/api/v2/channels/' + Chat.info.channel)
-            .then((res) => res.json())
-            .then(function (res) {
-                console.log(res);
-                Chat.info.channelID = res.id;
-                Chat.info.chatRoomId = res.chatroom.id;
-                Chat.loadEmotes(Chat.info.channelID);
+    load: async function () {
+        const res = await (await fetch('https://kick.com/api/v2/channels/' + Chat.info.channel)).json();
 
-                let size = sizes[Chat.info.size - 1];
-                let font = fonts[Chat.info.font];
+        Chat.info.channelID = res.id;
+        Chat.info.chatRoomId = res.chatroom.id;
+        Chat.loadEmotes(Chat.info.channelID);
 
-                appendCSS('size', size);
-                appendCSS('font', font);
+        let size = sizes[Chat.info.size - 1];
+        let font = fonts[Chat.info.font];
 
-                if (Chat.info.stroke && Chat.info.stroke > 0) {
-                    let stroke = strokes[Chat.info.stroke - 1];
-                    appendCSS('stroke', stroke);
-                }
-                if (Chat.info.shadow && Chat.info.shadow > 0) {
-                    let shadow = shadows[Chat.info.shadow - 1];
-                    appendCSS('shadow', shadow);
-                }
-                if (Chat.info.smallCaps) {
-                    appendCSS('variant', 'SmallCaps');
-                }
+        appendCSS('size', size);
+        appendCSS('font', font);
 
-                Chat.info.badges = [...res.subscriber_badges, ...res.follower_badges];
+        if (Chat.info.stroke && Chat.info.stroke > 0) {
+            let stroke = strokes[Chat.info.stroke - 1];
+            appendCSS('stroke', stroke);
+        }
+        if (Chat.info.shadow && Chat.info.shadow > 0) {
+            let shadow = shadows[Chat.info.shadow - 1];
+            appendCSS('shadow', shadow);
+        }
+        if (Chat.info.smallCaps) {
+            appendCSS('variant', 'SmallCaps');
+        }
 
-                callback(true);
-            });
+        Chat.info.badges = [...res.subscriber_badges, ...res.follower_badges];
+
+        Chat.info.contentLoaded = true;
     },
 
     update: setInterval(function () {
@@ -277,59 +264,63 @@ Chat = {
         $(`div[data-user-id=${id}]`).remove();
     },
 
-    connect: function (channel) {
-        Chat.info.channel = channel;
-        const title = $(document).prop('title');
-        $(document).prop('title', title + Chat.info.channel);
-
-        Chat.load(function () {
-            console.log('jChat: Connecting to IRC server...');
-            const baseUrl = "wss://ws-us2.pusher.com/app/eb1d5f283081a78b932c";
-            const urlParams = new URLSearchParams({
-                protocol: "7",
-                client: "js",
-                version: "7.4.0",
-                flash: false,
-            });
-            const url = `${baseUrl}?${urlParams.toString()}`;
-
-            const socket = new WebSocket(url);
-
-            socket.onopen = function () {
-                socket.send(JSON.stringify({
-                    event: "pusher:subscribe",
-                    data: {auth: "", channel: `chatrooms.${Chat.info.chatRoomId}.v2`},
-                }));
-
-                console.log('connected');
-            };
-
-            socket.onclose = function () {
-                console.log('jChat: Disconnected');
-                setTimeout(Chat.connect, 10000);
-            };
+    connect: async function (channel) {
+        if (!Chat.info.contentLoaded) {
+            Chat.info.channel = channel;
+            const title = $(document).prop('title');
+            $(document).prop('title', title + Chat.info.channel);
 
 
-            socket.onmessage = function (messageEvent) {
-                const messageEventJSON = JSON.parse(messageEvent.data.toString());
-                const data = JSON.parse(messageEventJSON.data);
-                switch (messageEventJSON.event) {
-                    case "App\\Events\\ChatMessageEvent":
-                        Chat.writeLine(data);
+            await Chat.load();
+        }
 
-                        break;
-                    case "App\\Events\\MessageDeletedEvent":
-                        Chat.removeChatLineById(data.message.id);
-
-                        break;
-                    case "App\\Events\\UserBannedEvent":
-                        Chat.removeUserChatLines(data.user.id);
-
-                        break;
-
-                }
-            }
+        console.log('Connecting...');
+        const baseUrl = "wss://ws-us2.pusher.com/app/eb1d5f283081a78b932c";
+        const urlParams = new URLSearchParams({
+            protocol: "7",
+            client: "js",
+            version: "7.4.0",
+            flash: false,
         });
+
+        const url = `${baseUrl}?${urlParams.toString()}`;
+
+        const socket = new WebSocket(url);
+
+        socket.onopen = function () {
+            socket.send(JSON.stringify({
+                event: "pusher:subscribe",
+                data: {auth: "", channel: `chatrooms.${Chat.info.chatRoomId}.v2`},
+            }));
+
+            console.log('connected');
+        };
+
+        socket.onclose = function () {
+            console.log('Disconnected');
+            setTimeout(Chat.connect, 10000, Chat.info.channel);
+        };
+
+
+        socket.onmessage = function (messageEvent) {
+            const messageEventJSON = JSON.parse(messageEvent.data.toString());
+            const data = JSON.parse(messageEventJSON.data);
+            switch (messageEventJSON.event) {
+                case "App\\Events\\ChatMessageEvent":
+                    Chat.writeLine(data);
+
+                    break;
+                case "App\\Events\\MessageDeletedEvent":
+                    Chat.removeChatLineById(data.message.id);
+
+                    break;
+                case "App\\Events\\UserBannedEvent":
+                    Chat.removeUserChatLines(data.user.id);
+
+                    break;
+
+            }
+        }
     },
 
     writeLine: function (data) {
