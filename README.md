@@ -9,3 +9,6 @@
 - Fade old messages (on/off)
 - Hide bots messages (on/off)
 - Hide commands messages (on/off)
+  
+https://pixelprodig.github.io/jchatkick/
+
