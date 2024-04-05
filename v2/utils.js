@@ -13,3 +13,7 @@ function escapeHtml(message) {
         .replace(/(<)(?!3)/g, "&lt;")
         .replace(/(>)(?!\()/g, "&gt;");
 }
+
+function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}

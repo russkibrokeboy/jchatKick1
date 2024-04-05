@@ -30,7 +30,9 @@ Chat = {
         cheers: {},
         lines: [],
         blockedUsers: ('block' in $.QueryString ? $.QueryString.block.toLowerCase().split(',') : false),
-        bots: ['streamelements', 'streamlabs', 'nightbot', 'moobot', 'fossabot']
+        bots: ['streamelements', 'streamlabs', 'nightbot', 'moobot', 'fossabot'],
+        channelID: null,
+        chatRoomId: null,
     },
 
     loadEmotes: function (channelID) {
@@ -81,7 +83,8 @@ Chat = {
             .then((res) => res.json())
             .then(function (res) {
                 console.log(res);
-                Chat.info.channelID = res.chatroom.id;
+                Chat.info.channelID = res.id;
+                Chat.info.chatRoomId = res.chatroom.id;
                 Chat.loadEmotes(Chat.info.channelID);
 
                 let size = sizes[Chat.info.size - 1];
@@ -224,7 +227,7 @@ Chat = {
             }
 
             Object.entries(Chat.info.emotes).forEach(emote => {
-                if (message.includes(emote[0])) {
+                if (message.search(escapeRegExp(emote[0])) > -1) {
                     if (emote[1].upscale) replacements[emote[0]] = `<img class="emote upscale" src="${emote[1].image}" alt="${emote[0]}" />`;
                     else if (emote[1].zeroWidth) replacements[emote[0]] = `<img class="emote" data-zw="true" src="${emote[1].image}" alt="${emote[0]}"/>`;
                     else replacements[emote[0]] = `<img class="emote" src="${emote[1].image}" alt="${emote[0]}"/>`;
@@ -239,7 +242,12 @@ Chat = {
             });
 
             replacementKeys.forEach(replacementKey => {
-                message = message.replaceAll(replacementKey, replacements[replacementKey]);
+                if (replacementKey === message) {
+                    message = replacements[replacementKey];
+                    return;
+                }
+                const regex = new RegExp("(?<!\\S)(" + escapeRegExp(replacementKey) + ")(?!\\S)", 'g');
+                message = message.replace(regex, replacements[replacementKey]);
             });
 
             $message.html(message);
@@ -284,12 +292,13 @@ Chat = {
                 flash: false,
             });
             const url = `${baseUrl}?${urlParams.toString()}`;
+
             const socket = new WebSocket(url);
 
             socket.onopen = function () {
                 socket.send(JSON.stringify({
                     event: "pusher:subscribe",
-                    data: {auth: "", channel: `chatrooms.${Chat.info.channelID}.v2`},
+                    data: {auth: "", channel: `chatrooms.${Chat.info.chatRoomId}.v2`},
                 }));
 
                 console.log('connected');
@@ -297,45 +306,16 @@ Chat = {
 
             socket.onclose = function () {
                 console.log('jChat: Disconnected');
+                setTimeout(Chat.connect, 10000);
             };
 
 
             socket.onmessage = function (messageEvent) {
                 const messageEventJSON = JSON.parse(messageEvent.data.toString());
                 const data = JSON.parse(messageEventJSON.data);
-                console.log(data, messageEventJSON.event);
                 switch (messageEventJSON.event) {
                     case "App\\Events\\ChatMessageEvent":
-                        const message = data.content;
-                        const username = data.sender.username;
-                        const info = {
-                            id: data.id,
-                            userId: data.sender.id,
-                            badges: data.sender.identity.badges,
-                            color: data.sender.identity.color,
-                            displayName: data.sender.username,
-                            emotes: []
-                        };
-
-                        try {
-                            const emoteRegex = /\[emote:\d+:[^\]]+\]/g;
-                            const matches = message.match(emoteRegex);
-                            if (matches.length) {
-                                matches.forEach(match => {
-                                    const parts = match.substring(7, match.length - 1).split(":");
-                                    console.log(match, parts);
-                                    info.emotes.push({
-                                        id: parts.at(0),
-                                        code: match,
-                                    })
-                                });
-                            }
-
-                        } catch (error) {
-                            console.log("Message filter error:", error);
-                        }
-
-                        Chat.write(username, info, message);
+                        Chat.writeLine(data);
 
                         break;
                     case "App\\Events\\MessageDeletedEvent":
@@ -350,6 +330,38 @@ Chat = {
                 }
             }
         });
+    },
+
+    writeLine: function (data) {
+        const message = data.content;
+        const username = data.sender.username;
+        const info = {
+            id: data.id,
+            userId: data.sender.id,
+            badges: data.sender.identity.badges,
+            color: data.sender.identity.color,
+            displayName: data.sender.username,
+            emotes: []
+        };
+
+        try {
+            const emoteRegex = /\[emote:\d+:[^\]]+\]/g;
+            const matches = message.match(emoteRegex);
+            if (matches.length) {
+                matches.forEach(match => {
+                    const parts = match.substring(7, match.length - 1).split(":");
+                    info.emotes.push({
+                        id: parts.at(0),
+                        code: match,
+                    })
+                });
+            }
+
+        } catch (error) {
+            console.log("Message filter error:", error);
+        }
+
+        Chat.write(username, info, message);
     }
 };
 
