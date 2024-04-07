@@ -234,10 +234,12 @@ Chat = {
                     return;
                 }
 
+                if(replacementKey.search(/\[emote:\d+:[^\]]+]/g) !== -1) {
+                    message = message.replaceAll(replacementKey, replacements[replacementKey]);
+                }
+
                 const regex = new RegExp(`(?<!\\S)(${escapeRegExp(replacementKey)})(?!\\S)`, 'g');
-                message = message
-                    .replace(new RegExp("(?<!\\s)(\\[emote:)(?!\\s)", 'g'), " $&")
-                    .replace(regex, replacements[replacementKey]);
+                message = message.replace(regex, replacements[replacementKey]);
             });
 
             $message.html(message);
@@ -343,9 +345,9 @@ Chat = {
         };
 
         try {
-            const emoteRegex = /\[emote:\d+:[^\]]+\]/g;
+            const emoteRegex = /\[emote:\d+:[^\]]+]/g;
             const matches = message.match(emoteRegex);
-            if (matches.length) {
+            if (matches !== null) {
                 matches.forEach(match => {
                     const parts = match.substring(7, match.length - 1).split(":");
                     info.emotes.push({
