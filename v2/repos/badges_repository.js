@@ -29,6 +29,12 @@ class BadgesRepository {
             .at(0);
     }
 
+    static load(badges = []) {
+        badges.forEach(badge => {
+            this.add(new Badge(badge.text ?? '', badge.badge_image.src, badge.months));
+        });
+    }
+
     static #getSubGifterCountCode(count = 0) {
         switch (true) {
             case count >= 1 && count <= 29:

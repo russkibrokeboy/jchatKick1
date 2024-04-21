@@ -45,3 +45,19 @@
 .emoji {
     height: 22px;
 }
+
+.reply {
+    display: block;
+    color: gray;
+    font-size: small;
+    margin-bottom: -10px;
+    margin-top: -10px;
+}
+
+.reply .emote {
+    max-width: 16px;
+}
+
+.reply-icon {
+    max-width: 10px;
+}

@@ -8,15 +8,9 @@
 })(jQuery);
 
 $(document).ready(function () {
+    ChatOptions.setOptions($.QueryString);
     new Chat({
         channel: $.QueryString.channel ? $.QueryString.channel.toLowerCase() : 'pixelprodig',
-        animate: ('animate' in $.QueryString ? ($.QueryString.animate.toLowerCase() === 'true') : false),
-        fade: ('fade' in $.QueryString ? parseInt($.QueryString.fade) : false),
-        size: ('size' in $.QueryString ? parseInt($.QueryString.size) : 3),
-        font: ('font' in $.QueryString ? parseInt($.QueryString.font) : 0),
-        stroke: ('stroke' in $.QueryString ? parseInt($.QueryString.stroke) : false),
-        shadow: ('shadow' in $.QueryString ? parseInt($.QueryString.shadow) : false),
-        smallCaps: ('small_caps' in $.QueryString ? ($.QueryString.small_caps.toLowerCase() === 'true') : false),
         lines: [],
         channelID: null,
         chatRoomId: null,

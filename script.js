@@ -71,7 +71,8 @@ function generateURL(event) {
         hide_badges: $badges.is(':checked'),
         animate: $animate.is(':checked'),
         fade: ($fade_bool.is(':checked') ? $fade.val() : false),
-        small_caps: $small_caps.is(':checked')
+        small_caps: $small_caps.is(':checked'),
+        show_replies: $show_replies.is(':checked')
     };
 
     const params = encodeQueryData(data);
@@ -121,6 +122,7 @@ function resetForm(event) {
     $fade_seconds.addClass('hidden');
     $fade.val("30");
     $small_caps.prop('checked', false);
+    $show_replies.prop('checked', false);
 
     sizeUpdate();
     fontUpdate();
@@ -156,6 +158,7 @@ const $result = $("#result");
 const $url = $('#url');
 const $alert = $("#alert");
 const $reset = $("#reset");
+const $show_replies = $('input[name="show_replies"]');
 
 $fade_bool.change(fadeOption);
 $size.change(sizeUpdate);

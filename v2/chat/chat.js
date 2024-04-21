@@ -1,52 +1,49 @@
 class Chat {
-    #options = {};
-    #baseUrl = "wss://ws-us2.pusher.com/app/eb1d5f283081a78b932c";
+    #info = {};
+    static #baseUrl = "wss://ws-us2.pusher.com/app/eb1d5f283081a78b932c";
 
-    constructor(options) {
-        this.#options = options;
-        this.#load();
-        this.#connect(this.#options.channel);
+    constructor(info) {
+        this.#info = info;
+        this.#load().then(() => this.#connect());
         this.#update();
     }
 
     async #load() {
-        const res = await (await fetch('https://kick.com/api/v2/channels/' + this.#options.channel)).json();
+        const res = await (await fetch('https://kick.com/api/v2/channels/' + this.#info.channel)).json();
 
-        this.#options.channelID = res.id;
-        this.#options.chatRoomId = res.chatroom.id;
+        this.#info.channelID = res.id;
+        this.#info.chatRoomId = res.chatroom.id;
         await EmotesRepository.load();
 
-        let size = sizes[this.#options.size - 1];
-        let font = fonts[this.#options.font];
+        let size = sizes[ChatOptions.size - 1];
+        let font = fonts[ChatOptions.font];
 
         appendCSS('size', size);
         appendCSS('font', font);
 
-        if (this.#options.stroke && this.#options.stroke > 0) {
-            let stroke = strokes[this.#options.stroke - 1];
+        if (ChatOptions.stroke && ChatOptions.stroke > 0) {
+            let stroke = strokes[ChatOptions.stroke - 1];
             appendCSS('stroke', stroke);
         }
-        if (this.#options.shadow && this.#options.shadow > 0) {
-            let shadow = shadows[this.#options.shadow - 1];
+        if (ChatOptions.shadow && ChatOptions.shadow > 0) {
+            let shadow = shadows[ChatOptions.shadow - 1];
             appendCSS('shadow', shadow);
         }
-        if (this.#options.smallCaps) {
+        if (ChatOptions.smallCaps) {
             appendCSS('variant', 'SmallCaps');
         }
 
-        [...res.subscriber_badges, ...res.follower_badges].forEach(badge => {
-            BadgesRepository.add(new Badge(badge.text ?? '', badge.badge_image.src, badge.months));
-        });
-
-        this.#options.contentLoaded = true;
+        BadgesRepository.load([...res.subscriber_badges, ...res.follower_badges]);
+        this.#info.contentLoaded = true;
     }
 
     #update() {
         setInterval(() => {
-            if (this.#options.lines.length > 0) {
-                const lines = this.#options.lines.join('');
+            const chatLine = $('.chat_line');
+            if (this.#info.lines.length) {
+                const lines = this.#info.lines.join('');
 
-                if (this.#options.animate) {
+                if (ChatOptions.animate) {
                     const $auxDiv = $('<div></div>', {class: "hidden"}).appendTo("#chat_container");
                     $auxDiv.append(lines);
                     const auxHeight = $auxDiv.height();
@@ -61,16 +58,16 @@ class Chat {
                 } else {
                     $('#chat_container').append(lines);
                 }
-                this.#options.lines = [];
-                let linesToDelete = $('.chat_line').length - 100;
-                while (linesToDelete > 0) {
-                    $('.chat_line').eq(0).remove();
-                    linesToDelete--;
+                this.#info.lines = [];
+
+                for (let i = chatLine.length - 100; i > 0; i--) {
+                    chatLine.eq(0).remove();
                 }
-            } else if (this.#options.fade) {
-                const messageTime = $('.chat_line').eq(0).data('time');
-                if ((Date.now() - messageTime) / 1000 >= this.#options.fade) {
-                    $('.chat_line').eq(0).fadeOut(function () {
+
+            } else if (ChatOptions.fade) {
+                const messageTime = chatLine.eq(0).data('time');
+                if ((Date.now() - messageTime) / 1000 >= ChatOptions.fade) {
+                    chatLine.eq(0).fadeOut(function () {
                         $(this).remove();
                     });
                 }
@@ -87,11 +84,10 @@ class Chat {
     }
 
     async #connect(channel) {
-        if (!this.#options.contentLoaded) {
-            this.#options.channel = channel;
+        if (!this.#info.contentLoaded) {
+            this.#info.channel = channel;
             const title = $(document).prop('title');
-            $(document).prop('title', title + this.#options.channel);
-
+            $(document).prop('title', title + this.#info.channel);
 
             await this.#load();
         }
@@ -104,14 +100,14 @@ class Chat {
             flash: false,
         });
 
-        const url = `${this.#baseUrl}?${urlParams.toString()}`;
+        const url = `${this.constructor.#baseUrl}?${urlParams.toString()}`;
 
         const socket = new WebSocket(url);
 
         socket.onopen = () => {
             socket.send(JSON.stringify({
                 event: "pusher:subscribe",
-                data: {auth: "", channel: `chatrooms.${this.#options.chatRoomId}.v2`},
+                data: {auth: "", channel: `chatrooms.${this.#info.chatRoomId}.v2`},
             }));
 
             console.log('connected');
@@ -119,7 +115,7 @@ class Chat {
 
         socket.onclose = () => {
             console.log('Disconnected');
-            setTimeout(Chat.connect, 1e3 * 3, this.#options.channel);
+            setTimeout(this.#connect, 1e3 * 3, this.#info.channel);
         };
 
         socket.onmessage = (messageEvent) => {
@@ -149,6 +145,6 @@ class Chat {
 
     #onMessageHandler(data) {
         const chatMessage = new ChatMessage(new ChatMessageData(data));
-        this.#options.lines.push(chatMessage.toHtml());
+        this.#info.lines.push(chatMessage.toHtml());
     }
 }

@@ -1,11 +1,11 @@
 class Message {
     #id;
     #content;
-    static #kickEmoteRegExp = /\[emote:\d+:[^\]]*]/g;
 
     constructor(id, content) {
         this.#id = id;
         this.#content = escapeHtml(content);
+        this.#replaceEmotes();
     }
 
     #replaceEmotes() {
@@ -19,7 +19,7 @@ class Message {
                 return;
             }
 
-            if (code.search(this.constructor.#kickEmoteRegExp) !== -1) {
+            if (code.search(ChatOptions.kickEmoteRegexp) !== -1) {
                 this.#content = this.#content.replaceAll(code, EmotesRepository.getByCode(code)?.toHtml());
             }
 
@@ -31,8 +31,6 @@ class Message {
     }
 
     toHtml() {
-        this.#replaceEmotes();
-
         return this.#content;
     }
 

@@ -50,3 +50,9 @@ body {
 .hidden {
     display: none;
 }
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

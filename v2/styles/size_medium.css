@@ -44,3 +44,19 @@
 .emoji {
     height: 39px;
 }
+
+.reply {
+    display: block;
+    margin-top: -18px;
+    margin-bottom: -18px;
+    color: gray;
+    font-size: x-large;
+}
+
+.reply .emote {
+    max-width: 26px;
+}
+
+.reply-icon {
+    width: 18px;
+}

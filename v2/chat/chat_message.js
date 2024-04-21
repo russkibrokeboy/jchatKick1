@@ -9,7 +9,7 @@ class ChatMessage {
      */
     constructor(messageData) {
         this.#messageData = messageData;
-        this.addKickEmotes();
+        this.#addKickEmotes();
         this.#setUserName();
         this.#setMessage();
     }
@@ -43,10 +43,9 @@ class ChatMessage {
         return badges;
     }
 
-    addKickEmotes() {
+    #addKickEmotes() {
         try {
-            const emoteRegex = /\[emote:\d+:[^\]]*]/g;
-            const matches = this.#messageData.messageContent.match(emoteRegex);
+            const matches = this.#messageData.messageContent.match(ChatOptions.kickEmoteRegexp);
 
             if (matches !== null) {
                 matches.forEach(match => {
@@ -61,6 +60,10 @@ class ChatMessage {
         }
     }
 
+    get #showReply() {
+        return ChatOptions.showReplies && this.#messageData.type === 'reply';
+    }
+
     toHtml() {
         const $chatLine = $('<div></div>');
         $chatLine.addClass('chat_line');
@@ -71,6 +74,11 @@ class ChatMessage {
 
         $chatLine.append(this.#userName.toHtml());
         $chatLine.append(this.#message.toHtml());
+
+        if(this.#showReply) {
+            const reply = new Reply(this.#messageData.id, this.#messageData.originalMessageContent, this.#messageData.originalMessageSenderUserName);
+            $chatLine.prepend(reply.toHtml());
+        }
 
         return $chatLine.wrap('<div>').parent().html();
     }

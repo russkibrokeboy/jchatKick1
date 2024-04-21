@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <title>jChat &bull; Setup | giambaJ</title>
@@ -19,7 +19,7 @@
 
 <body>
 <header>
-    <img src="img/peepoHappy.png">
+    <img src="img/peepoHappy.png" alt="peepoHappy">
     <div>
         <h1>jChat</h1>
         <h2>Setup</h2>
@@ -44,12 +44,14 @@
     <form name="generator">
         <div class="form_row center">
 
-            <input type="text" name="channel" required placeholder="Channel">
+            <label>
+                <input type="text" name="channel" required placeholder="Channel">
+            </label>
         </div>
         <div class="form_table">
             <div class="form_col">
                 <div class="form_row left">
-                    <select name="size">
+                    <select name="size" id="size">
                         <option value="1">Small</option>
                         <option value="2">Medium</option>
                         <option value="3" selected>Large</option>
@@ -57,7 +59,7 @@
                     <label for="size">Size</label>
                 </div>
                 <div class="form_row left">
-                    <select name="font">
+                    <select name="font" id="font">
                         <option value="0" selected>Baloo Tammudu</option>
                         <option value="1">Segoe UI</option>
                         <option value="2">Roboto</option>
@@ -78,7 +80,7 @@
             <div class="form_col">
                 <div class="form_row right">
                     <label for="stroke">Stroke</label>
-                    <select name="stroke">
+                    <select name="stroke" id="stroke">
                         <option value="0" selected>Off</option>
                         <option value="1">Thin</option>
                         <option value="2">Medium</option>
@@ -88,7 +90,7 @@
                 </div>
                 <div class="form_row right">
                     <label for="shadow">Shadow</label>
-                    <select name="shadow">
+                    <select name="shadow" id="shadow">
                         <option value="0" selected>Off</option>
                         <option value="1">Small</option>
                         <option value="2">Medium</option>
@@ -98,34 +100,36 @@
                 <br>
                 <div class="form_row right">
                     <label for="animate">Animate</label>
-                    <input type="checkbox" name="animate">
+                    <input type="checkbox" name="animate" id="animate">
                 </div>
                 <div class="form_row right">
-                    <label for="fade">Fade</label>
-                    <input type="text" name="fade" value="30" class="short hidden"><span id="fade_seconds"
+                    <label for="fade">Fade out</label>
+                    <input type="text" name="fade" id="fade" value="30" class="short hidden"><span id="fade_seconds"
                                                                                          class="hidden">sec</span>
-                    <input type="checkbox" name="fade_bool">
+                    <label>
+                        <input type="checkbox" name="fade_bool">
+                    </label>
+                </div>
+                <div class="form_row right">
+                    <label for="show_replies">Show replies</label>
+                    <label>
+                        <input type="checkbox" name="show_replies" id="show_replies">
+                    </label>
                 </div>
                 <div class="form_row right">
                     <label for="small_caps">Caps</label>
-                    <input type="checkbox" name="small_caps">
+                    <input type="checkbox" name="small_caps" id="small_caps">
                 </div>
             </div>
         </div>
 
         <div id="submit_container">
-            <div class="preview"><img id="brightness" src="img/light.png"> <label>Preview:</label></div>
+            <div class="preview"><img id="brightness" src="img/light.png" alt="brightness"> <label>Preview:</label></div>
             <div id="example">
-                <div class="chat_line"><span class="user_info"><img class="badge special"
-                                                                    src="https://cdn.frankerfacez.com/badge/3/4"
-                                                                    style="background-color: rgb(117, 80, 0);"><img
-                        class="badge special" src="https://cdn.7tv.app/badge/60d5998fb0ac44b85331fe2b/3x"><img
-                        class="badge"
-                        src="https://static-cdn.jtvnw.net/badges/v1/3158e758-3cb4-43c5-94b3-7639810451c5/3"><span
-                        class="nick" style="color: rgb(38, 255, 0);">giambaJ</span>
+                <div class="chat_line">
+                    <span class="nick" style="color: rgb(38, 255, 0);">jchat</span>
                         <span class="colon">:</span>
-                        </span> Nice chat <img class="emote"
-                                               src="https://cdn.betterttv.net/frankerfacez_emote/341767/4"></span>
+                        <span> Nice chat </span>
                 </div>
             </div>
             <input type="submit" value="Generate">
@@ -133,7 +137,7 @@
     </form>
     <div id="result" class="hidden">
         <div id="alert">Copied to clipboard</div>
-        <input type="text" id="url" readonly>
+        <label for="url"></label><input type="text" id="url" readonly>
         <p>Configure a new browser source on your streaming software with the given URL.</p>
         <input type="button" id="reset" value="Reset">
     </div>
