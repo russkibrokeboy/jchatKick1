@@ -33,11 +33,6 @@ body {
     vertical-align: middle;
 }
 
-.cheer_bits {
-    font-size: 0.6em;
-    -webkit-text-stroke: 1px black;
-}
-
 .emote {
     vertical-align: middle;
     margin-right: 2px;
@@ -54,4 +49,10 @@ body {
 
 .hidden {
     display: none;
+}
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
