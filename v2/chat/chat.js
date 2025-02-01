@@ -96,7 +96,7 @@ class Chat {
         const urlParams = new URLSearchParams({
             protocol: "7",
             client: "js",
-            version: "8.4.0-rc2",
+            version: "8.4.0",
             flash: false,
         });
 
