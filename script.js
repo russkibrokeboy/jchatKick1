@@ -59,7 +59,7 @@ function capsUpdate(event) {
 function generateURL(event) {
     event.preventDefault();
 
-    const generatedUrl = 'https://russkibrokeboy.github.io/jchatkick1/v2/index.html?channel=' + $channel.val();
+    const generatedUrl = 'https://russkibrokeboy.github.io/jchatKick1/v2/index.html?channel=' + $channel.val();
 
     let data = {
         size: $size.val(),
