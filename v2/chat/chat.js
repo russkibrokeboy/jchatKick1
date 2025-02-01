@@ -2,11 +2,12 @@ class Chat {
     #info = {};
     static #baseUrl = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679";
 
-    constructor(info) {
-        this.#info = info;
-        this.#load().then(() => this.#connect());
-        this.#update();
+    constructor(user, maxMessages, animate, fade, showBadges, hideCommands, hideBots, externalCss) {
+        this.#info = { lines: [] };
+        // Start the update loop
+        this.update();
     }
+
 
     async #load() {
         const res = await (await fetch('https://kick.com/api/v2/channels/' + this.#info.channel)).json();
@@ -37,43 +38,73 @@ class Chat {
         this.#info.contentLoaded = true;
     }
 
-    #update() {
-        setInterval(() => {
-            const chatLine = $('.chat_line');
-            if (this.#info.lines.length) {
-                const lines = this.#info.lines.join('');
+    updateChat() {
+        const chatLines = document.querySelectorAll('.chat_line');
 
-                if (ChatOptions.animate) {
-                    const $auxDiv = $('<div></div>', {class: "hidden"}).appendTo("#chat_container");
-                    $auxDiv.append(lines);
-                    const auxHeight = $auxDiv.height();
-                    $auxDiv.remove();
+        if (this.#info && this.#info.lines && this.#info.lines.length) {
+            const lines = this.#info.lines.join('');
 
-                    const $animDiv = $('<div></div>');
-                    $('#chat_container').append($animDiv);
-                    $animDiv.animate({"height": auxHeight}, 150, function () {
-                        $(this).remove();
-                        $('#chat_container').append(lines);
-                    });
-                } else {
-                    $('#chat_container').append(lines);
-                }
-                this.#info.lines = [];
-
-                for (let i = chatLine.length - 100; i > 0; i--) {
-                    chatLine.eq(0).remove();
-                }
-
-            } else if (ChatOptions.fade) {
-                const messageTime = chatLine.eq(0).data('time');
-                if ((Date.now() - messageTime) / 1000 >= ChatOptions.fade) {
-                    chatLine.eq(0).fadeOut(function () {
-                        $(this).remove();
-                    });
-                }
+            if (this.animate) {
+                this.animateNewMessages(lines);
+            } else {
+                document.getElementById('chat-container').insertAdjacentHTML('beforeend', lines);
             }
-        }, 200)
+            this.#info.lines = [];
+
+            // Remove excess messages
+            this.removeExcessMessages(chatLines);
+        } else if (this.fade) {
+            this.fadeOldMessages(chatLines);
+        }
     }
+
+    animateNewMessages(lines) {
+        const auxDiv = document.createElement('div');
+        auxDiv.style.visibility = 'hidden';
+        auxDiv.innerHTML = lines;
+        document.getElementById('chat-container').appendChild(auxDiv);
+        const auxHeight = auxDiv.offsetHeight;
+        auxDiv.remove();
+
+        const animDiv = document.createElement('div');
+        document.getElementById('chat-container').appendChild(animDiv);
+
+        // Using Web Animations API for animation
+        const animation = animDiv.animate([
+            { height: '0px' },
+            { height: `${auxHeight}px` }
+        ], {
+            duration: 150,
+            easing: 'ease-out'
+        });
+
+        animation.onfinish = () => {
+            animDiv.remove();
+            document.getElementById('chat-container').insertAdjacentHTML('beforeend', lines);
+        };
+    }
+
+    removeExcessMessages(chatLines) {
+        const maxMessages = 100; // Adjust as needed
+        for (let i = chatLines.length - maxMessages; i > 0; i--) {
+            chatLines[0].remove();
+        }
+    }
+
+    fadeOldMessages(chatLines) {
+        if (chatLines.length > 0) {
+            const messageTime = parseInt(chatLines[0].getAttribute('data-timestamp'));
+            if ((Date.now() - messageTime) / 1000 >= this.fade) {
+                chatLines[0].style.transition = 'opacity 1s';
+                chatLines[0].style.opacity = '0';
+                setTimeout(() => {
+                    chatLines[0].remove();
+                }, 1000);
+            }
+        }
+    }
+
+
 
     #onMessageDeletedHandler(id) {
         $(`div[data-id=${id}]`).remove();
@@ -159,7 +190,37 @@ class Chat {
 
 
     #onMessageHandler(data) {
-        const chatMessage = new ChatMessage(new ChatMessageData(data));
-        this.#info.lines.push(chatMessage.toHtml());
+        this.createAndAppendMsg({
+            msgID: data.id,
+            msgSender: data.sender.username,
+            msgIdentity: data.sender.identity,
+            msgTimestamp: data.created_at,
+            msgContent: data.content,
+        });
     }
+
+    async createAndAppendMsg({
+        msgID,
+        msgSender,
+        msgIdentity,
+        msgTimestamp,
+        msgContent,
+    }) {
+        // ... (existing code to create message element)
+
+        const messageHTML = msg.outerHTML;
+
+        if (!this.#info) {
+            this.#info = { lines: [] };
+        }
+        this.#info.lines.push(messageHTML);
+
+        handleAnimationAndFading(msg) {
+            // This is now handled in animateNewMessages
+        }
+
+        handleMessageLimit() {
+            // This is now handled in removeExcessMessages
+        }
+
 }
