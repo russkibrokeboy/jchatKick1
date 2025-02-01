@@ -10,7 +10,7 @@
 $(document).ready(function () {
     ChatOptions.setOptions($.QueryString);
     new Chat({
-        channel: $.QueryString.channel ? $.QueryString.channel.toLowerCase() : 'pixelprodig',
+        channel: $.QueryString.channel ? $.QueryString.channel.toLowerCase() : 'russkibrokeboy',
         lines: [],
         channelID: null,
         chatRoomId: null,
