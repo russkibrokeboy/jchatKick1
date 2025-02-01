@@ -1,6 +1,6 @@
 class Chat {
     #info = {};
-    static #baseUrl = "wss://ws-us2.pusher.com/app/eb1d5f283081a78b932c";
+    static #baseUrl = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679";
 
     constructor(info) {
         this.#info = info;
@@ -96,7 +96,7 @@ class Chat {
         const urlParams = new URLSearchParams({
             protocol: "7",
             client: "js",
-            version: "7.4.0",
+            version: "8.4.0",
             flash: false,
         });
 
