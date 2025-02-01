@@ -100,7 +100,7 @@ class Chat {
             flash: false,
         });
 
-        const url = `${this.constructor.#baseUrl}?${urlParams.toString()}`;
+        const url = `${Chat.#baseUrl}?${urlParams.toString()}`;
 
         const socket = new WebSocket(url);
 
