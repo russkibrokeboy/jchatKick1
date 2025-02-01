@@ -92,7 +92,7 @@ class Chat {
             await this.#load();
         }
 
-        console.log('Connecting...');
+        console.log('Attempting to connect...');
         const urlParams = new URLSearchParams({
             protocol: "7",
             client: "js",
@@ -102,46 +102,61 @@ class Chat {
 
         const url = `${Chat.#baseUrl}?${urlParams.toString()}`;
 
-        const socket = new WebSocket(url);
+        try {
+            const socket = new WebSocket(url);
 
-        socket.onopen = () => {
-            socket.send(JSON.stringify({
-                event: "pusher:subscribe",
-                data: {auth: "", channel: `chatrooms.${this.#info.chatRoomId}.v2`},
-            }));
+            socket.onopen = () => {
+                console.log('WebSocket connection established. Subscribing to chat room...');
+                socket.send(JSON.stringify({
+                    event: "pusher:subscribe",
+                    data: {auth: "", channel: `chatrooms.${this.#info.chatRoomId}.v2`},
+                }));
+            };
 
-            console.log('connected');
-        };
+            socket.onclose = (event) => {
+                console.log(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
+                console.log('Attempting to reconnect in 3 seconds...');
+                setTimeout(() => this.#connect(this.#info.channel), 3000);
+            };
 
-        socket.onclose = () => {
-            console.log('Disconnected');
-            setTimeout(this.#connect, 1e3 * 3, this.#info.channel);
-        };
+            socket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
 
-        socket.onmessage = (messageEvent) => {
-            const messageEventJSON = JSON.parse(messageEvent.data.toString());
-            let data = {};
+            socket.onmessage = (messageEvent) => {
+                const messageEventJSON = JSON.parse(messageEvent.data.toString());
+                let data = {};
 
-            if (typeof messageEventJSON.data === 'string') {
-                data = JSON.parse(messageEventJSON.data);
-            }
+                if (typeof messageEventJSON.data === 'string') {
+                    data = JSON.parse(messageEventJSON.data);
+                }
 
-            switch (messageEventJSON.event) {
-                case "App\\Events\\ChatMessageEvent":
-                    this.#onMessageHandler(data);
-
-                    break;
-                case "App\\Events\\MessageDeletedEvent":
-                    this.#onMessageDeletedHandler(data.message.id);
-
-                    break;
-                case "App\\Events\\UserBannedEvent":
-                    this.#onUserBannedHandler(data.user.id);
-
-                    break;
-            }
+                if (messageEventJSON.event === "pusher:connection_established") {
+                    console.log('Successfully connected and subscribed to chat room.');
+                    // You can add code here to update the UI to show "Connected" status
+                } else {
+                    switch (messageEventJSON.event) {
+                        case "App\\Events\\ChatMessageEvent":
+                            this.#onMessageHandler(data);
+                            break;
+                        case "App\\Events\\MessageDeletedEvent":
+                            this.#onMessageDeletedHandler(data.message.id);
+                            break;
+                        case "App\\Events\\UserBannedEvent":
+                            this.#onUserBannedHandler(data.user.id);
+                            break;
+                        default:
+                            console.log('Received unknown event:', messageEventJSON.event);
+                    }
+                }
+            };
+        } catch (error) {
+            console.error('Error creating WebSocket connection:', error);
+            console.log('Attempting to reconnect in 3 seconds...');
+            setTimeout(() => this.#connect(this.#info.channel), 3000);
         }
     }
+
 
     #onMessageHandler(data) {
         const chatMessage = new ChatMessage(new ChatMessageData(data));
