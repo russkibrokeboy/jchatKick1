@@ -1,16 +1,53 @@
+<div id="chat-container"></div>
 class Chat {
     #info = {};
     static #baseUrl = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679";
 
     constructor(user, maxMessages, animate, fade, showBadges, hideCommands, hideBots, externalCss) {
+        this.user = user;
+        this.maxMessages = maxMessages;
+        this.animate = animate === "true";
+        this.fade = fade;
+        this.showBadges = showBadges === "true";
+        this.hideCommands = hideCommands === "true";
+        this.hideBots = hideBots === "true";
+        this.externalCss = externalCss;
         this.#info = { lines: [] };
+
+        // Start the connection
+        this.#connect(user);
         // Start the update loop
         this.update();
     }
 
+    showConnectionStatus(status) {
+        const statusElement = document.createElement('div');
+        statusElement.id = 'connection-status';
+        statusElement.textContent = status;
+        statusElement.style.position = 'fixed';
+        statusElement.style.top = '10px';
+        statusElement.style.right = '10px';
+        statusElement.style.padding = '5px 10px';
+        statusElement.style.backgroundColor = 'green';
+        statusElement.style.color = 'white';
+        statusElement.style.borderRadius = '5px';
+        document.body.appendChild(statusElement);
+
+        // Remove the status message after 5 seconds
+        setTimeout(() => {
+            statusElement.remove();
+        }, 5000);
+    }
+update() {
+    setInterval(() => {
+        this.updateChat();
+    }, 200);
+}
+
+
 
     async #load() {
-        const res = await (await fetch('https://kick.com/api/v2/channels/' + this.#info.channel)).json();
+        const res = await fetch('https://kick.com/api/v2/channels/' + this.#info.channel).then(r => r.json());
 
         this.#info.channelID = res.id;
         this.#info.chatRoomId = res.chatroom.id;
@@ -37,6 +74,7 @@ class Chat {
         BadgesRepository.load([...res.subscriber_badges, ...res.follower_badges]);
         this.#info.contentLoaded = true;
     }
+
 
     updateChat() {
         const chatLines = document.querySelectorAll('.chat_line');
@@ -114,15 +152,23 @@ class Chat {
         $(`div[data-user-id=${id}]`).remove();
     }
 
-    async #connect(channel) {
+    #connect(channel) {
         if (!this.#info.contentLoaded) {
             this.#info.channel = channel;
-            const title = $(document).prop('title');
-            $(document).prop('title', title + this.#info.channel);
+            const title = document.title;
+            document.title = title + ' - ' + this.#info.channel;
 
-            await this.#load();
+            this.#load().then(() => {
+                // After loading, establish the WebSocket connection
+                this.#establishWebSocketConnection();
+            });
+        } else {
+            // If content is already loaded, just establish the WebSocket connection
+            this.#establishWebSocketConnection();
         }
+    }
 
+    #establishWebSocketConnection() {
         console.log('Attempting to connect...');
         const urlParams = new URLSearchParams({
             protocol: "7",
@@ -142,12 +188,15 @@ class Chat {
                     event: "pusher:subscribe",
                     data: {auth: "", channel: `chatrooms.${this.#info.chatRoomId}.v2`},
                 }));
+
+                // Add this line to show the connection status
+                this.showConnectionStatus('Connected');
             };
 
             socket.onclose = (event) => {
                 console.log(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
                 console.log('Attempting to reconnect in 3 seconds...');
-                setTimeout(() => this.#connect(this.#info.channel), 3000);
+                setTimeout(() => this.#establishWebSocketConnection(), 3000);
             };
 
             socket.onerror = (error) => {
@@ -184,9 +233,11 @@ class Chat {
         } catch (error) {
             console.error('Error creating WebSocket connection:', error);
             console.log('Attempting to reconnect in 3 seconds...');
-            setTimeout(() => this.#connect(this.#info.channel), 3000);
+            setTimeout(() => this.#establishWebSocketConnection(), 3000);
         }
     }
+
+
 
 
     #onMessageHandler(data) {
@@ -215,12 +266,7 @@ class Chat {
         }
         this.#info.lines.push(messageHTML);
 
-        handleAnimationAndFading(msg) {
-            // This is now handled in animateNewMessages
-        }
-
-        handleMessageLimit() {
-            // This is now handled in removeExcessMessages
-        }
+        // Remove these methods from here
+        // handleAnimationAndFading and handleMessageLimit are now handled in updateChat
 
 }
