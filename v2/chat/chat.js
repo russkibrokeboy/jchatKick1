@@ -321,24 +321,27 @@ update() {
     }
 
     static initializeChat() {
-        let urlParams = new URLSearchParams(window.location.search);
+        const urlParams = new URLSearchParams(window.location.search);
         const pageSetup = new PageSetup(urlParams);
 
-        if (!urlParams.getParam("user")) {
+        if (!urlParams.get("user")) {
             window.location.replace("/");
-        } else {
-            const chat = new Chat(
-                urlParams.getParam("user"),
-                pageSetup.maxMessages,
-                urlParams.getParam("animate"),
-                urlParams.getParam("fade"),
-                urlParams.getParam("badges"),
-                urlParams.getParam("commands"),
-                urlParams.getParam("bots"),
-                urlParams.getParam("external-css")
-            );
-            pageSetup.applyCustomisation();
+            return;
         }
+
+        const chat = new Chat(
+            urlParams.get("user"),
+            pageSetup.maxMessages,
+            urlParams.get("animate"),
+            urlParams.get("fade"),
+            urlParams.get("badges"), 
+            urlParams.get("commands"),
+            urlParams.get("bots"),
+            urlParams.get("external-css")
+        );
+
+        pageSetup.applyCustomisation();
+        return chat;
     }
 }
 
