@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>Chat</title>
+    <title>jChat &bull; Setup | giambaJ</title>
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;300;400;500;700&display=swap"
           rel="stylesheet">
@@ -11,16 +11,10 @@
     <link rel="stylesheet" href="styles/style.css">
     <link rel="stylesheet" class="preview_size" href="styles/size_large.css">
     <link rel="stylesheet" class="preview_font" href="styles/font_BalooTammudu.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        // Define globals
-        const sizes = ['small', 'medium', 'large'];
-        const fonts = ['arial', 'helvetica', 'sans-serif'];
-        const strokes = ['thin', 'medium', 'thick'];
-        const shadows = ['light', 'medium', 'dark'];
-    </script>
-    <script src="chat.js"></script>
-    <script src="script.js"></script>
+    <script src="jquery.min.js"></script>
+    <script src="settings.js" defer></script>
+    <script src="utils.js" defer></script>
+    <script src="script.js" defer></script>
 </head>
 
 <body>
@@ -147,9 +141,6 @@
         <p>Configure a new browser source on your streaming software with the given URL.</p>
         <input type="button" id="reset" value="Reset">
     </div>
-
-    <div id="chat-container"></div>
-    <div id="loading">Connecting...</div>
 
 </section>
 </body>
