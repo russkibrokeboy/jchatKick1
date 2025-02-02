@@ -1,53 +1,16 @@
-<div id="chat-container"></div>
 class Chat {
     #info = {};
+    // Update to new WebSocket URL
     static #baseUrl = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679";
 
-    constructor(user, maxMessages, animate, fade, showBadges, hideCommands, hideBots, externalCss) {
-        this.user = user;
-        this.maxMessages = maxMessages;
-        this.animate = animate === "true";
-        this.fade = fade;
-        this.showBadges = showBadges === "true";
-        this.hideCommands = hideCommands === "true";
-        this.hideBots = hideBots === "true";
-        this.externalCss = externalCss;
-        this.#info = { lines: [] };
-
-        // Start the connection
-        this.#connect(user);
-        // Start the update loop
-        this.update();
+    constructor(info) {
+        this.#info = info;
+        this.#load().then(() => this.#connect(this.#info.channel));
+        this.#update();
     }
-
-    showConnectionStatus(status) {
-        const statusElement = document.createElement('div');
-        statusElement.id = 'connection-status';
-        statusElement.textContent = status;
-        statusElement.style.position = 'fixed';
-        statusElement.style.top = '10px';
-        statusElement.style.right = '10px';
-        statusElement.style.padding = '5px 10px';
-        statusElement.style.backgroundColor = 'green';
-        statusElement.style.color = 'white';
-        statusElement.style.borderRadius = '5px';
-        document.body.appendChild(statusElement);
-
-        // Remove the status message after 5 seconds
-        setTimeout(() => {
-            statusElement.remove();
-        }, 5000);
-    }
-update() {
-    setInterval(() => {
-        this.updateChat();
-    }, 200);
-}
-
-
 
     async #load() {
-        const res = await fetch('https://kick.com/api/v2/channels/' + this.#info.channel).then(r => r.json());
+        const res = await (await fetch('https://kick.com/api/v2/channels/' + this.#info.channel)).json();
 
         this.#info.channelID = res.id;
         this.#info.chatRoomId = res.chatroom.id;
@@ -75,74 +38,43 @@ update() {
         this.#info.contentLoaded = true;
     }
 
+    #update() {
+        setInterval(() => {
+            const chatLine = $('.chat_line');
+            if (this.#info.lines.length) {
+                const lines = this.#info.lines.join('');
 
-    updateChat() {
-        const chatLines = document.querySelectorAll('.chat_line');
+                if (ChatOptions.animate) {
+                    const $auxDiv = $('<div></div>', {class: "hidden"}).appendTo("#chat_container");
+                    $auxDiv.append(lines);
+                    const auxHeight = $auxDiv.height();
+                    $auxDiv.remove();
 
-        if (this.#info && this.#info.lines && this.#info.lines.length) {
-            const lines = this.#info.lines.join('');
+                    const $animDiv = $('<div></div>');
+                    $('#chat_container').append($animDiv);
+                    $animDiv.animate({"height": auxHeight}, 150, function () {
+                        $(this).remove();
+                        $('#chat_container').append(lines);
+                    });
+                } else {
+                    $('#chat_container').append(lines);
+                }
+                this.#info.lines = [];
 
-            if (this.animate) {
-                this.animateNewMessages(lines);
-            } else {
-                document.getElementById('chat-container').insertAdjacentHTML('beforeend', lines);
+                for (let i = chatLine.length - 100; i > 0; i--) {
+                    chatLine.eq(0).remove();
+                }
+
+            } else if (ChatOptions.fade) {
+                const messageTime = chatLine.eq(0).data('time');
+                if ((Date.now() - messageTime) / 1000 >= ChatOptions.fade) {
+                    chatLine.eq(0).fadeOut(function () {
+                        $(this).remove();
+                    });
+                }
             }
-            this.#info.lines = [];
-
-            // Remove excess messages
-            this.removeExcessMessages(chatLines);
-        } else if (this.fade) {
-            this.fadeOldMessages(chatLines);
-        }
+        }, 200)
     }
-
-    animateNewMessages(lines) {
-        const auxDiv = document.createElement('div');
-        auxDiv.style.visibility = 'hidden';
-        auxDiv.innerHTML = lines;
-        document.getElementById('chat-container').appendChild(auxDiv);
-        const auxHeight = auxDiv.offsetHeight;
-        auxDiv.remove();
-
-        const animDiv = document.createElement('div');
-        document.getElementById('chat-container').appendChild(animDiv);
-
-        // Using Web Animations API for animation
-        const animation = animDiv.animate([
-            { height: '0px' },
-            { height: `${auxHeight}px` }
-        ], {
-            duration: 150,
-            easing: 'ease-out'
-        });
-
-        animation.onfinish = () => {
-            animDiv.remove();
-            document.getElementById('chat-container').insertAdjacentHTML('beforeend', lines);
-        };
-    }
-
-    removeExcessMessages(chatLines) {
-        const maxMessages = 100; // Adjust as needed
-        for (let i = chatLines.length - maxMessages; i > 0; i--) {
-            chatLines[0].remove();
-        }
-    }
-
-    fadeOldMessages(chatLines) {
-        if (chatLines.length > 0) {
-            const messageTime = parseInt(chatLines[0].getAttribute('data-timestamp'));
-            if ((Date.now() - messageTime) / 1000 >= this.fade) {
-                chatLines[0].style.transition = 'opacity 1s';
-                chatLines[0].style.opacity = '0';
-                setTimeout(() => {
-                    chatLines[0].remove();
-                }, 1000);
-            }
-        }
-    }
-
-
 
     #onMessageDeletedHandler(id) {
         $(`div[data-id=${id}]`).remove();
@@ -152,24 +84,17 @@ update() {
         $(`div[data-user-id=${id}]`).remove();
     }
 
-    #connect(channel) {
+    async #connect(channel) {
         if (!this.#info.contentLoaded) {
             this.#info.channel = channel;
-            const title = document.title;
-            document.title = title + ' - ' + this.#info.channel;
+            const title = $(document).prop('title');
+            $(document).prop('title', title + this.#info.channel);
 
-            this.#load().then(() => {
-                // After loading, establish the WebSocket connection
-                this.#establishWebSocketConnection();
-            });
-        } else {
-            // If content is already loaded, just establish the WebSocket connection
-            this.#establishWebSocketConnection();
+            await this.#load();
         }
-    }
 
-    #establishWebSocketConnection() {
-        console.log('Attempting to connect...');
+        console.log('Connecting...');
+        // Update connection parameters
         const urlParams = new URLSearchParams({
             protocol: "7",
             client: "js",
@@ -177,96 +102,36 @@ update() {
             flash: false,
         });
 
-        const url = `${Chat.#baseUrl}?${urlParams.toString()}`;
+        const url = `${this.constructor.#baseUrl}?${urlParams.toString()}`;
+        console.log('Attempting connection to:', url);
 
-        try {
-            const socket = new WebSocket(url);
+        const socket = new WebSocket(url);
 
-            socket.onopen = () => {
-                console.log('WebSocket connection established. Subscribing to chat room...');
-                socket.send(JSON.stringify({
-                    event: "pusher:subscribe",
-                    data: {auth: "", channel: `chatrooms.${this.#info.chatRoomId}.v2`},
-                }));
+        socket.onopen = () => {
+            console.log('Socket opened, subscribing to channel...');
+            socket.send(JSON.stringify({
+                event: "pusher:subscribe",
+                data: {
+                    auth: "", 
+                    channel: `chatrooms.${this.#info.chatRoomId}.v2`
+                },
+            }));
+            console.log('connected');
+        };
 
-                // Add this line to show the connection status
-                this.showConnectionStatus('Connected');
-            };
+        socket.onclose = () => {
+            console.log('Disconnected');
+            // Fix context binding
+            setTimeout(() => this.#connect(this.#info.channel), 3000);
+        };
 
-            socket.onclose = (event) => {
-                console.log(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
-                console.log('Attempting to reconnect in 3 seconds...');
-                setTimeout(() => this.#establishWebSocketConnection(), 3000);
-            };
-
-            socket.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
-
-            socket.onmessage = (messageEvent) => {
-                const messageEventJSON = JSON.parse(messageEvent.data.toString());
-                let data = {};
-
-                if (typeof messageEventJSON.data === 'string') {
-                    data = JSON.parse(messageEventJSON.data);
-                }
-
-                if (messageEventJSON.event === "pusher:connection_established") {
-                    console.log('Successfully connected and subscribed to chat room.');
-                    // You can add code here to update the UI to show "Connected" status
-                } else {
-                    switch (messageEventJSON.event) {
-                        case "App\\Events\\ChatMessageEvent":
-                            this.#onMessageHandler(data);
-                            break;
-                        case "App\\Events\\MessageDeletedEvent":
-                            this.#onMessageDeletedHandler(data.message.id);
-                            break;
-                        case "App\\Events\\UserBannedEvent":
-                            this.#onUserBannedHandler(data.user.id);
-                            break;
-                        default:
-                            console.log('Received unknown event:', messageEventJSON.event);
-                    }
-                }
-            };
-        } catch (error) {
-            console.error('Error creating WebSocket connection:', error);
-            console.log('Attempting to reconnect in 3 seconds...');
-            setTimeout(() => this.#establishWebSocketConnection(), 3000);
-        }
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
     }
-
-
-
 
     #onMessageHandler(data) {
-        this.createAndAppendMsg({
-            msgID: data.id,
-            msgSender: data.sender.username,
-            msgIdentity: data.sender.identity,
-            msgTimestamp: data.created_at,
-            msgContent: data.content,
-        });
+        const chatMessage = new ChatMessage(new ChatMessageData(data));
+        this.#info.lines.push(chatMessage.toHtml());
     }
-
-    async createAndAppendMsg({
-        msgID,
-        msgSender,
-        msgIdentity,
-        msgTimestamp,
-        msgContent,
-    }) {
-        // ... (existing code to create message element)
-
-        const messageHTML = msg.outerHTML;
-
-        if (!this.#info) {
-            this.#info = { lines: [] };
-        }
-        this.#info.lines.push(messageHTML);
-
-        // Remove these methods from here
-        // handleAnimationAndFading and handleMessageLimit are now handled in updateChat
-
 }
