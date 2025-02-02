@@ -94,7 +94,6 @@ class Chat {
         }
 
         console.log('Connecting...');
-        // Update connection parameters
         const urlParams = new URLSearchParams({
             protocol: "7",
             client: "js",
@@ -103,30 +102,37 @@ class Chat {
         });
 
         const url = `${this.constructor.#baseUrl}?${urlParams.toString()}`;
-        console.log('Attempting connection to:', url);
+        console.log('Connecting to:', url); // Add debug log
 
         const socket = new WebSocket(url);
 
         socket.onopen = () => {
-            console.log('Socket opened, subscribing to channel...');
+            console.log('Socket opened'); // Add debug log
             socket.send(JSON.stringify({
                 event: "pusher:subscribe",
-                data: {
-                    auth: "", 
-                    channel: `chatrooms.${this.#info.chatRoomId}.v2`
-                },
+                data: {auth: "", channel: `chatrooms.${this.#info.chatRoomId}.v2`},
             }));
             console.log('connected');
         };
 
         socket.onclose = () => {
             console.log('Disconnected');
-            // Fix context binding
-            setTimeout(() => this.#connect(this.#info.channel), 3000);
+            // Fix the context binding
+            setTimeout(() => this.#connect(this.#info.channel), 1e3 * 3);
         };
 
         socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
+            console.error('WebSocket error:', error); // Add error handling
+        };
+
+        socket.onmessage = (messageEvent) => {
+            const messageEventJSON = JSON.parse(messageEvent.data.toString());
+            let data = {};
+
+            if (typeof messageEventJSON.data === 'string') {
+                data = JSON.parse(messageEventJSON.data);
+            }
+            console.log('Message received:', messageEventJSON); // Add debug log
         };
     }
 
