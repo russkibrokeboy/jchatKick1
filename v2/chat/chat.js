@@ -151,5 +151,19 @@ class Chat {
 
 function displayLog(message) {
     console.log(message);
-    $('#log_container').append(`<div class="log-message">${message}</div>`);
+    const logElement = $(`<div class="log-message">${message}</div>`);
+    $('#log_container').append(logElement);
+    
+    // Fade out after 1 second and remove from DOM
+    setTimeout(() => {
+        logElement.fadeOut(400, () => {
+            logElement.remove();
+        });
+    }, 1000);
+}
+
+.log-message {
+    font-family: monospace;
+    color: #333;
+    transition: opacity 0.4s ease-out;
 }
