@@ -162,8 +162,3 @@ function displayLog(message) {
     }, 1000);
 }
 
-.log-message {
-    font-family: monospace;
-    color: #333;
-    transition: opacity 0.4s ease-out;
-}
