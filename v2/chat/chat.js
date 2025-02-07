@@ -92,7 +92,7 @@ class Chat {
             await this.#load();
         }
 
-        console.log('Connecting...');
+        displayLog('Connecting...');
         const urlParams = new URLSearchParams({
             protocol: "7",
             client: "js",
@@ -110,11 +110,11 @@ class Chat {
                 data: {auth: "", channel: `chatrooms.${this.#info.chatRoomId}.v2`},
             }));
 
-            console.log('connected');
+            displayLog('connected');
         };
 
         socket.onclose = () => {
-            console.log('Disconnected');
+            displayLog('Disconnected');
             setTimeout(this.#connect, 1e3 * 3, this.#info.channel);
         };
 
@@ -147,4 +147,9 @@ class Chat {
         const chatMessage = new ChatMessage(new ChatMessageData(data));
         this.#info.lines.push(chatMessage.toHtml());
     }
+}
+
+function displayLog(message) {
+    console.log(message);
+    $('#log_container').append(`<div class="log-message">${message}</div>`);
 }
