@@ -1,6 +1,7 @@
 class Chat {
     #info = {};
     static #baseUrl = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679";
+    static #proxyUrl = "https://cors-anywhere.herokuapp.com/";  // Add proxy URL
 
     constructor(info) {
         this.#info = info;
@@ -11,28 +12,32 @@ class Chat {
     async #load() {
         try {
             const fetchOptions = {
-                mode: 'no-cors',
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Origin': window.location.origin
                 }
             };
 
-            // Try fetch with retry mechanism
             const fetchWithRetry = async (url, options, maxRetries = 3) => {
+                const proxyUrl = this.constructor.#proxyUrl + url;
+                
                 for (let i = 0; i < maxRetries; i++) {
                     try {
-                        const response = await fetch(url, options);
-                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const response = await fetch(proxyUrl, options);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
                         return await response.json();
                     } catch (error) {
+                        console.warn(`Attempt ${i + 1} failed:`, error);
                         if (i === maxRetries - 1) throw error;
-                        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
                     }
                 }
             };
 
             const res = await fetchWithRetry(
-                'https://kick.com/api/v2/channels/' + this.#info.channel, 
+                'https://kick.com/api/v2/channels/' + this.#info.channel,
                 fetchOptions
             );
 
