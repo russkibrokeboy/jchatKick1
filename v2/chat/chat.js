@@ -1,7 +1,6 @@
 class Chat {
     #info = {};
     static #baseUrl = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679";
-    static #proxyUrl = "https://api.allorigins.win/get?url=";  // Update proxy URL
 
     constructor(info) {
         this.#info = info;
@@ -10,78 +9,32 @@ class Chat {
     }
 
     async #load() {
-        try {
-            const fetchOptions = {
-                headers: {
-                    'Accept': 'application/json',
-                    'Origin': window.location.origin
-                }
-            };
+        const res = await (await fetch('https://kick.com/api/v2/channels/' + this.#info.channel)).json();
 
-            const fetchWithRetry = async (url, options, maxRetries = 3) => {
-                const proxyUrl = this.constructor.#proxyUrl + encodeURIComponent(url);
-                
-                for (let i = 0; i < maxRetries; i++) {
-                    try {
-                        const response = await fetch(proxyUrl, options);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        const contentType = response.headers.get('content-type');
-                        if (contentType && contentType.includes('application/json')) {
-                            const data = await response.json();
-                            return JSON.parse(data.contents);
-                        } else {
-                            const text = await response.text();
-                            throw new Error(`Received non-JSON response: ${text}`);
-                        }
-                    } catch (error) {
-                        console.warn(`Attempt ${i + 1} failed:`, error);
-                        if (i === maxRetries - 1) throw error;
-                        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
-                    }
-                }
-            };
+        this.#info.channelID = res.id;
+        this.#info.chatRoomId = res.chatroom.id;
+        await EmotesRepository.load();
 
-            const res = await fetchWithRetry(
-                'https://kick.com/api/v2/channels/' + this.#info.channel,
-                fetchOptions
-            );
+        let size = sizes[ChatOptions.size - 1];
+        let font = fonts[ChatOptions.font];
 
-            if (!res) {
-                throw new Error('Failed to load channel data');
-            }
+        appendCSS('size', size);
+        appendCSS('font', font);
 
-            this.#info.channelID = res.id;
-            this.#info.chatRoomId = res.chatroom.id;
-            await EmotesRepository.load();
-
-            // Rest of the loading logic remains the same
-            let size = sizes[ChatOptions.size - 1];
-            let font = fonts[ChatOptions.font];
-
-            appendCSS('size', size);
-            appendCSS('font', font);
-
-            if (ChatOptions.stroke && ChatOptions.stroke > 0) {
-                let stroke = strokes[ChatOptions.stroke - 1];
-                appendCSS('stroke', stroke);
-            }
-            if (ChatOptions.shadow && ChatOptions.shadow > 0) {
-                let shadow = shadows[ChatOptions.shadow - 1];
-                appendCSS('shadow', shadow);
-            }
-            if (ChatOptions.smallCaps) {
-                appendCSS('variant', 'SmallCaps');
-            }
-
-            await BadgesRepository.load([...res.subscriber_badges, ...res.follower_badges]);
-            this.#info.contentLoaded = true;
-        } catch (error) {
-            console.error('Failed to load chat:', error);
-            this.#info.contentLoaded = false;
-            throw error;
+        if (ChatOptions.stroke && ChatOptions.stroke > 0) {
+            let stroke = strokes[ChatOptions.stroke - 1];
+            appendCSS('stroke', stroke);
         }
+        if (ChatOptions.shadow && ChatOptions.shadow > 0) {
+            let shadow = shadows[ChatOptions.shadow - 1];
+            appendCSS('shadow', shadow);
+        }
+        if (ChatOptions.smallCaps) {
+            appendCSS('variant', 'SmallCaps');
+        }
+
+        BadgesRepository.load([...res.subscriber_badges, ...res.follower_badges]);
+        this.#info.contentLoaded = true;
     }
 
     #update() {
@@ -212,12 +165,12 @@ async function attemptConnection(socket, maxRetries = 10, delay = 100) {
                 }
                 throw new Error('Max retries reached');
             }
-            
+
             if (socket.readyState === WebSocket.OPEN) {
                 displayLog('Connecting...');
                 return true;
             }
-            
+
             return false;
         } catch (error) {
             console.error('Connection error:', error);
@@ -232,7 +185,7 @@ function displayLog(message) {
     console.log(message);
     const logElement = $(`<div class="log-message">${message}</div>`);
     $('#log_container').append(logElement);
-    
+
     // Fade out after 1 second and remove from DOM
     setTimeout(() => {
         logElement.fadeOut(400, () => {
