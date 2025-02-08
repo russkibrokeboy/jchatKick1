@@ -151,7 +151,7 @@ class Chat {
     }
 }
 
-async function attemptConnection(socket, maxRetries = 5, delay = 1000) {
+async function attemptConnection(socket, maxRetries = 10, delay = 100) {
     let retries = 0;
 
     const tryConnect = async () => {
