@@ -32,7 +32,8 @@ class Chat {
                             const data = await response.json();
                             return JSON.parse(data.contents);
                         } else {
-                            throw new Error('Received non-JSON response');
+                            const text = await response.text();
+                            throw new Error(`Received non-JSON response: ${text}`);
                         }
                     } catch (error) {
                         console.warn(`Attempt ${i + 1} failed:`, error);
