@@ -1,7 +1,7 @@
 class Chat {
     #info = {};
     static #baseUrl = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679";
-    static #proxyUrl = "https://cors-anywhere.herokuapp.com/";  // Add proxy URL
+    static #proxyUrl = "https://api.allorigins.win/get?url=";  // Update proxy URL
 
     constructor(info) {
         this.#info = info;
@@ -19,7 +19,7 @@ class Chat {
             };
 
             const fetchWithRetry = async (url, options, maxRetries = 3) => {
-                const proxyUrl = this.constructor.#proxyUrl + url;
+                const proxyUrl = this.constructor.#proxyUrl + encodeURIComponent(url);
                 
                 for (let i = 0; i < maxRetries; i++) {
                     try {
@@ -27,7 +27,8 @@ class Chat {
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
-                        return await response.json();
+                        const data = await response.json();
+                        return JSON.parse(data.contents);
                     } catch (error) {
                         console.warn(`Attempt ${i + 1} failed:`, error);
                         if (i === maxRetries - 1) throw error;
