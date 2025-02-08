@@ -9,32 +9,67 @@ class Chat {
     }
 
     async #load() {
-        const res = await (await fetch('https://kick.com/api/v2/channels/' + this.#info.channel)).json();
+        try {
+            const fetchOptions = {
+                mode: 'no-cors',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            };
 
-        this.#info.channelID = res.id;
-        this.#info.chatRoomId = res.chatroom.id;
-        await EmotesRepository.load();
+            // Try fetch with retry mechanism
+            const fetchWithRetry = async (url, options, maxRetries = 3) => {
+                for (let i = 0; i < maxRetries; i++) {
+                    try {
+                        const response = await fetch(url, options);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return await response.json();
+                    } catch (error) {
+                        if (i === maxRetries - 1) throw error;
+                        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                    }
+                }
+            };
 
-        let size = sizes[ChatOptions.size - 1];
-        let font = fonts[ChatOptions.font];
+            const res = await fetchWithRetry(
+                'https://kick.com/api/v2/channels/' + this.#info.channel, 
+                fetchOptions
+            );
 
-        appendCSS('size', size);
-        appendCSS('font', font);
+            if (!res) {
+                throw new Error('Failed to load channel data');
+            }
 
-        if (ChatOptions.stroke && ChatOptions.stroke > 0) {
-            let stroke = strokes[ChatOptions.stroke - 1];
-            appendCSS('stroke', stroke);
+            this.#info.channelID = res.id;
+            this.#info.chatRoomId = res.chatroom.id;
+            await EmotesRepository.load();
+
+            // Rest of the loading logic remains the same
+            let size = sizes[ChatOptions.size - 1];
+            let font = fonts[ChatOptions.font];
+
+            appendCSS('size', size);
+            appendCSS('font', font);
+
+            if (ChatOptions.stroke && ChatOptions.stroke > 0) {
+                let stroke = strokes[ChatOptions.stroke - 1];
+                appendCSS('stroke', stroke);
+            }
+            if (ChatOptions.shadow && ChatOptions.shadow > 0) {
+                let shadow = shadows[ChatOptions.shadow - 1];
+                appendCSS('shadow', shadow);
+            }
+            if (ChatOptions.smallCaps) {
+                appendCSS('variant', 'SmallCaps');
+            }
+
+            await BadgesRepository.load([...res.subscriber_badges, ...res.follower_badges]);
+            this.#info.contentLoaded = true;
+        } catch (error) {
+            console.error('Failed to load chat:', error);
+            this.#info.contentLoaded = false;
+            throw error;
         }
-        if (ChatOptions.shadow && ChatOptions.shadow > 0) {
-            let shadow = shadows[ChatOptions.shadow - 1];
-            appendCSS('shadow', shadow);
-        }
-        if (ChatOptions.smallCaps) {
-            appendCSS('variant', 'SmallCaps');
-        }
-
-        BadgesRepository.load([...res.subscriber_badges, ...res.follower_badges]);
-        this.#info.contentLoaded = true;
     }
 
     #update() {
