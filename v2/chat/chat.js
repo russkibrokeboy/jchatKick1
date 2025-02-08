@@ -27,8 +27,13 @@ class Chat {
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
-                        const data = await response.json();
-                        return JSON.parse(data.contents);
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const data = await response.json();
+                            return JSON.parse(data.contents);
+                        } else {
+                            throw new Error('Received non-JSON response');
+                        }
                     } catch (error) {
                         console.warn(`Attempt ${i + 1} failed:`, error);
                         if (i === maxRetries - 1) throw error;
