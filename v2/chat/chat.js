@@ -104,13 +104,15 @@ class Chat {
 
         const socket = new WebSocket(url);
 
-        socket.onopen = () => {
-            socket.send(JSON.stringify({
-                event: "pusher:subscribe",
-                data: {auth: "", channel: `chatrooms.${this.#info.chatRoomId}.v2`},
-            }));
+        socket.onopen = async () => {
+            if (await attemptConnection(socket)) {
+                socket.send(JSON.stringify({
+                    event: "pusher:subscribe",
+                    data: {auth: "", channel: `chatrooms.${this.#info.chatRoomId}.v2`},
+                }));
 
-            displayLog('connected');
+                displayLog('connected');
+            }
         };
 
         socket.onclose = () => {
@@ -149,6 +151,36 @@ class Chat {
     }
 }
 
+async function attemptConnection(socket, maxRetries = 5, delay = 1000) {
+    let retries = 0;
+
+    const tryConnect = async () => {
+        try {
+            if (socket.readyState === WebSocket.CONNECTING) {
+                // Still trying to connect, wait and retry
+                if (retries < maxRetries) {
+                    retries++;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return await tryConnect();
+                }
+                throw new Error('Max retries reached');
+            }
+            
+            if (socket.readyState === WebSocket.OPEN) {
+                displayLog('Connecting...');
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Connection error:', error);
+            return false;
+        }
+    };
+
+    return await tryConnect();
+}
+
 function displayLog(message) {
     console.log(message);
     const logElement = $(`<div class="log-message">${message}</div>`);
@@ -161,4 +193,3 @@ function displayLog(message) {
         });
     }, 1000);
 }
-
